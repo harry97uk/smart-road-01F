@@ -8,7 +8,7 @@ const HORIZONTAL_LANE_HEIGHT: u32 = WINDOW_HEIGHT / 18;
 const HORIZONTAL_LANE_WIDTH: u32 = WINDOW_WIDTH / 3;
 
 fn render_intersection(canvas: &mut WindowCanvas, intersection: &Intersection) {
-    // Draw lanes and vehicles
+    // Draw lanes
     for (index, lane) in intersection.lanes.iter().enumerate() {
         // Draw lane
         canvas.set_draw_color(Color::WHITE);
