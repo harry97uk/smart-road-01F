@@ -23,7 +23,7 @@ fn main() -> Result<(), String> {
 
     let mut canvas = window.into_canvas().build().expect("could not make a canvas");
 
-    let intersection = Intersection::new();
+    let mut intersection = Intersection::new();
 
     let mut event_pump = sdl_context.event_pump()?;
     'running: loop {
@@ -33,11 +33,24 @@ fn main() -> Result<(), String> {
                 Event::Quit { .. } | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running;
                 }
+                Event::KeyDown { keycode: Some(keycode), .. } => {
+                    match keycode {
+                        Keycode::Left | Keycode::Right | Keycode::Up | Keycode::Down => {
+                            intersection.add_directed_vehicle(keycode);
+                        }
+                        Keycode::R => {
+                            intersection.add_random_vehicle();
+                        }
+                        _ => {}
+                    }
+                }
+
                 _ => {}
             }
         }
 
         // Update
+        intersection.update();
 
         // Render
         render(&mut canvas, &intersection)?;

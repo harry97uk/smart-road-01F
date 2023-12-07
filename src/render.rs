@@ -1,13 +1,21 @@
 use sdl2::{ render::{ WindowCanvas }, pixels::Color, rect::Rect };
 
-use crate::{ intersection::{ Intersection, Direction }, WINDOW_HEIGHT, WINDOW_WIDTH };
+use crate::{
+    intersection::{ Intersection, Direction },
+    WINDOW_HEIGHT,
+    WINDOW_WIDTH,
+    vehicle::{ VEHICLE_WIDTH, VEHICLE_HEIGHT },
+};
 
-const VERTICAL_LANE_WIDTH: u32 = WINDOW_WIDTH / 18;
+pub const VERTICAL_LANE_WIDTH: u32 = WINDOW_WIDTH / 18;
 const VERTICAL_LANE_HEIGHT: u32 = WINDOW_HEIGHT / 3;
-const HORIZONTAL_LANE_HEIGHT: u32 = WINDOW_HEIGHT / 18;
+pub const HORIZONTAL_LANE_HEIGHT: u32 = WINDOW_HEIGHT / 18;
 const HORIZONTAL_LANE_WIDTH: u32 = WINDOW_WIDTH / 3;
 
-fn render_intersection(canvas: &mut WindowCanvas, intersection: &Intersection) {
+fn render_intersection(
+    canvas: &mut WindowCanvas,
+    intersection: &Intersection
+) -> Result<(), String> {
     // Draw lanes
     for (index, lane) in intersection.lanes.iter().enumerate() {
         // Draw lane
@@ -81,12 +89,23 @@ fn render_intersection(canvas: &mut WindowCanvas, intersection: &Intersection) {
         canvas.draw_rect(lane_rect).unwrap();
         canvas.draw_rect(opposite_lane_rect).unwrap();
     }
+    Ok(())
+}
+
+fn render_cars(canvas: &mut WindowCanvas, intersection: &Intersection) -> Result<(), String> {
+    canvas.set_draw_color(Color::RED);
+    for car in &intersection.vehicles {
+        let car_rect = Rect::new(car.position.x, car.position.y, VEHICLE_WIDTH, VEHICLE_HEIGHT);
+        canvas.draw_rect(car_rect).unwrap();
+    }
+    Ok(())
 }
 
 pub fn render(canvas: &mut WindowCanvas, intersection: &Intersection) -> Result<(), String> {
     canvas.set_draw_color(Color::BLACK);
     canvas.clear();
-    render_intersection(canvas, intersection);
+    render_intersection(canvas, intersection)?;
+    render_cars(canvas, intersection)?;
     canvas.present();
     Ok(())
 }
