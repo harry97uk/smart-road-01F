@@ -46,7 +46,14 @@ impl Intersection {
         // Update the state of the intersection
         // For example, check for collisions and update vehicle positions
         // Implement the smart intersection strategy here
+        let nc = self.vehicles.clone();
         for car in &mut self.vehicles {
+            if car.is_car_in_front(nc.clone()) {
+                car.set_velocity(1);
+            } else {
+                car.set_velocity(3);
+            }
+
             car.update(1000 / 60);
         }
         self.vehicles.retain(

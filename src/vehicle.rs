@@ -1,7 +1,7 @@
 use sdl2::rect::Point;
 
 use crate::{
-    intersection::Direction,
+    intersection::{ Direction, Intersection },
     WINDOW_HEIGHT,
     WINDOW_WIDTH,
     render::{ VERTICAL_LANE_WIDTH, HORIZONTAL_LANE_HEIGHT },
@@ -92,6 +92,55 @@ impl Vehicle {
     pub fn set_velocity(&mut self, velocity: i32) {
         // Set the velocity of the vehicle
         self.velocity = velocity;
+    }
+
+    pub fn is_in_intersection(&self) -> bool {
+        self.position.x >= (WINDOW_WIDTH as i32) / 3 &&
+            self.position.x <= ((WINDOW_WIDTH as i32) * 2) / 3 &&
+            self.position.y >= (WINDOW_HEIGHT as i32) / 3 &&
+            self.position.y <= ((WINDOW_HEIGHT as i32) * 2) / 3
+    }
+
+    pub fn is_car_in_front(&self, vehicles: Vec<Vehicle>) -> bool {
+        match self.origin {
+            Direction::North => {
+                if
+                    let None = vehicles
+                        .iter()
+                        .find(|c| c.position.x == self.position.x && c.position.y > self.position.y)
+                {
+                    return false;
+                }
+            }
+            Direction::South => {
+                if
+                    let None = vehicles
+                        .iter()
+                        .find(|c| c.position.x == self.position.x && c.position.y < self.position.y)
+                {
+                    return false;
+                }
+            }
+            Direction::East => {
+                if
+                    let None = vehicles
+                        .iter()
+                        .find(|c| c.position.y == self.position.y && c.position.x < self.position.x)
+                {
+                    return false;
+                }
+            }
+            Direction::West => {
+                if
+                    let None = vehicles
+                        .iter()
+                        .find(|c| c.position.y == self.position.y && c.position.x > self.position.x)
+                {
+                    return false;
+                }
+            }
+        }
+        true
     }
 
     fn update_position(&mut self) {

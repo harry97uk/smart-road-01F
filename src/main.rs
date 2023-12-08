@@ -3,13 +3,14 @@ mod intersection;
 mod vehicle;
 
 use crate::render::render;
-use std::time::Duration;
+use std::time::{ Duration, Instant };
 
 use intersection::Intersection;
 use sdl2::{ event::Event, keyboard::Keycode };
 
 const WINDOW_WIDTH: u32 = 600;
 const WINDOW_HEIGHT: u32 = 600;
+const KEY_PRESS_INTERVAL: Duration = Duration::from_millis(5);
 
 fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
@@ -23,6 +24,8 @@ fn main() -> Result<(), String> {
 
     let mut canvas = window.into_canvas().build().expect("could not make a canvas");
 
+    let mut last_keypress_time = Instant::now();
+
     let mut intersection = Intersection::new();
 
     let mut event_pump = sdl_context.event_pump()?;
@@ -34,14 +37,18 @@ fn main() -> Result<(), String> {
                     break 'running;
                 }
                 Event::KeyDown { keycode: Some(keycode), .. } => {
-                    match keycode {
-                        Keycode::Left | Keycode::Right | Keycode::Up | Keycode::Down => {
-                            intersection.add_directed_vehicle(keycode);
+                    let elapsed_time = Instant::now().duration_since(last_keypress_time);
+                    if elapsed_time >= KEY_PRESS_INTERVAL {
+                        match keycode {
+                            Keycode::Left | Keycode::Right | Keycode::Up | Keycode::Down => {
+                                intersection.add_directed_vehicle(keycode);
+                            }
+                            Keycode::R => {
+                                intersection.add_random_vehicle();
+                            }
+                            _ => {}
                         }
-                        Keycode::R => {
-                            intersection.add_random_vehicle();
-                        }
-                        _ => {}
+                        last_keypress_time = Instant::now();
                     }
                 }
 
