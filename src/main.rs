@@ -1,6 +1,7 @@
 mod render;
 mod intersection;
 mod vehicle;
+mod physics;
 
 use crate::render::render;
 use std::time::{ Duration, Instant };
@@ -10,7 +11,8 @@ use sdl2::{ event::Event, keyboard::Keycode };
 
 const WINDOW_WIDTH: u32 = 600;
 const WINDOW_HEIGHT: u32 = 600;
-const KEY_PRESS_INTERVAL: Duration = Duration::from_millis(5);
+const KEY_PRESS_INTERVAL: Duration = Duration::from_millis(200);
+const SPAWN_INTERVAL: Duration = Duration::from_millis(600);
 
 fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
@@ -25,8 +27,11 @@ fn main() -> Result<(), String> {
     let mut canvas = window.into_canvas().build().expect("could not make a canvas");
 
     let mut last_keypress_time = Instant::now();
+    let mut last_spawn_time = Instant::now();
 
     let mut intersection = Intersection::new();
+
+    let mut continuous_spawning = false;
 
     let mut event_pump = sdl_context.event_pump()?;
     'running: loop {
@@ -44,7 +49,7 @@ fn main() -> Result<(), String> {
                                 intersection.add_directed_vehicle(keycode);
                             }
                             Keycode::R => {
-                                intersection.add_random_vehicle();
+                                continuous_spawning = !continuous_spawning;
                             }
                             _ => {}
                         }
@@ -57,6 +62,11 @@ fn main() -> Result<(), String> {
         }
 
         // Update
+        let elapsed_spawn_time = Instant::now().duration_since(last_spawn_time);
+        if continuous_spawning && elapsed_spawn_time >= SPAWN_INTERVAL {
+            intersection.add_random_vehicle();
+            last_spawn_time = Instant::now();
+        }
         intersection.update();
 
         // Render

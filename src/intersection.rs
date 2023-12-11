@@ -3,7 +3,12 @@
 use rand::Rng;
 use sdl2::keyboard::Keycode;
 
-use crate::{ vehicle::{ Vehicle, VEHICLE_WIDTH, VEHICLE_HEIGHT }, WINDOW_WIDTH, WINDOW_HEIGHT };
+use crate::{
+    vehicle::{ Vehicle, VEHICLE_WIDTH, VEHICLE_HEIGHT },
+    WINDOW_WIDTH,
+    WINDOW_HEIGHT,
+    physics::{ will_vehicles_collide },
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
@@ -47,15 +52,39 @@ impl Intersection {
         // For example, check for collisions and update vehicle positions
         // Implement the smart intersection strategy here
         let nc = self.vehicles.clone();
-        for car in &mut self.vehicles {
-            if car.is_car_in_front(nc.clone()) {
-                car.set_velocity(1);
-            } else {
-                car.set_velocity(3);
+        for (_, car) in self.vehicles.iter_mut().enumerate() {
+            let mut new_velocity = 4.0;
+            let mut cars_after: Vec<Vehicle> = nc.clone();
+
+            //give priority to cars closer to finishing
+            cars_after.retain(
+                |&c|
+                    !c.is_in_end_lane() &&
+                    c.position != car.position &&
+                    c.get_distance_to_finish() < car.get_distance_to_finish()
+            );
+
+            if !car.is_in_end_lane() {
+                for other_car in &mut cars_after {
+                    while will_vehicles_collide(car, other_car) {
+                        // Reduce velocity by 0.5, with a minimum of 1.0
+                        new_velocity = (car.velocity - 1.0).max(1.0);
+
+                        car.set_velocity(new_velocity);
+
+                        // Check again for collision with the updated velocity
+                        if !will_vehicles_collide(car, other_car) || new_velocity == 1.0 {
+                            break;
+                        }
+                    }
+                }
             }
 
-            car.update(1000 / 60);
+            car.set_velocity(new_velocity);
+            car.update(1.0 / 0.06);
         }
+
+        //remove vehicles from intersection if out of bounds
         self.vehicles.retain(
             |v|
                 v.position.x <= (WINDOW_WIDTH as i32) &&
@@ -66,13 +95,35 @@ impl Intersection {
     }
 
     pub fn add_directed_vehicle(&mut self, keycode: Keycode) {
+        let mut origin = Direction::South;
+        let mut directions = vec![
+            Direction::North,
+            Direction::South,
+            Direction::East,
+            Direction::West
+        ];
+
         match keycode {
-            Keycode::Up => self.add_vehicle(Direction::South, Direction::North),
-            Keycode::Down => self.add_vehicle(Direction::North, Direction::South),
-            Keycode::Left => self.add_vehicle(Direction::East, Direction::West),
-            Keycode::Right => self.add_vehicle(Direction::West, Direction::East),
+            Keycode::Up => {
+                origin = Direction::South;
+            }
+            Keycode::Down => {
+                origin = Direction::North;
+            }
+            Keycode::Left => {
+                origin = Direction::East;
+            }
+            Keycode::Right => {
+                origin = Direction::West;
+            }
             _ => (),
         }
+
+        directions.retain(|&d| d != origin);
+        let random_index = rand::thread_rng().gen_range(0..directions.len());
+        let direction = directions[random_index];
+
+        self.add_vehicle(origin, direction);
     }
 
     pub fn add_random_vehicle(&mut self) {
