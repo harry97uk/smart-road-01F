@@ -1,82 +1,103 @@
 use sdl2::rect::Point;
 
 use crate::{
-    intersection::{ Direction },
+    intersection::Direction,
     WINDOW_HEIGHT,
     WINDOW_WIDTH,
     render::{ VERTICAL_LANE_WIDTH, HORIZONTAL_LANE_HEIGHT },
 };
 
-pub const VEHICLE_WIDTH: u32 = VERTICAL_LANE_WIDTH;
+pub const VEHICLE_WIDTH: u32 = (VERTICAL_LANE_WIDTH * 3) / 2;
 pub const VEHICLE_HEIGHT: u32 = VERTICAL_LANE_WIDTH;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vehicle {
     pub position: Point,
+    pub width: u32,
+    pub height: u32,
     pub time: f32,
     pub distance: f32,
     pub velocity: f32,
     pub origin: Direction,
     pub direction: Direction,
+    pub facing: Direction,
+    pub colliding: bool,
 }
 
 impl Vehicle {
     pub fn new(origin: Direction, direction: Direction) -> Self {
         let (mut x, mut y) = (0, 0);
+        let mut facing = Direction::North;
 
         match (origin, direction) {
             (Direction::South, Direction::North) => {
                 y = WINDOW_HEIGHT - VEHICLE_HEIGHT;
                 x = (WINDOW_WIDTH * 2) / 3 - VERTICAL_LANE_WIDTH * 2;
+                facing = Direction::North;
             }
             (Direction::South, Direction::East) => {
                 y = WINDOW_HEIGHT;
                 x = (WINDOW_WIDTH * 2) / 3 - VERTICAL_LANE_WIDTH;
+                facing = Direction::North;
             }
             (Direction::South, Direction::West) => {
                 y = WINDOW_HEIGHT;
                 x = (WINDOW_WIDTH * 2) / 3 - VERTICAL_LANE_WIDTH * 3;
+                facing = Direction::North;
             }
             (Direction::East, Direction::South) => {
                 x = WINDOW_WIDTH;
                 y = WINDOW_HEIGHT / 3 + HORIZONTAL_LANE_HEIGHT * 2;
+                facing = Direction::West;
             }
             (Direction::East, Direction::North) => {
                 x = WINDOW_WIDTH;
                 y = WINDOW_HEIGHT / 3;
+                facing = Direction::West;
             }
             (Direction::East, Direction::West) => {
                 x = WINDOW_WIDTH - VEHICLE_WIDTH;
                 y = WINDOW_HEIGHT / 3 + HORIZONTAL_LANE_HEIGHT;
+                facing = Direction::West;
             }
             (Direction::North, Direction::South) => {
                 x = WINDOW_WIDTH / 3 + VERTICAL_LANE_WIDTH;
+                facing = Direction::South;
             }
             (Direction::North, Direction::East) => {
                 x = WINDOW_WIDTH / 3 + VERTICAL_LANE_WIDTH * 2;
+                facing = Direction::South;
             }
             (Direction::North, Direction::West) => {
                 x = WINDOW_WIDTH / 3;
+                facing = Direction::South;
             }
             (Direction::West, Direction::North) => {
                 y = (WINDOW_HEIGHT * 2) / 3 - HORIZONTAL_LANE_HEIGHT * 3;
+                facing = Direction::East;
             }
             (Direction::West, Direction::East) => {
                 y = (WINDOW_HEIGHT * 2) / 3 - HORIZONTAL_LANE_HEIGHT * 2;
+                facing = Direction::East;
             }
             (Direction::West, Direction::South) => {
                 y = (WINDOW_HEIGHT * 2) / 3 - HORIZONTAL_LANE_HEIGHT;
+                facing = Direction::East;
             }
             _ => {}
         }
 
         Self {
             position: Point::new(x as i32, y as i32),
+            width: VEHICLE_WIDTH,
+            height: VEHICLE_HEIGHT,
             time: 0.0,
             distance: 0.0,
             velocity: 1.0,
             origin,
             direction,
+            facing,
+            colliding: false,
         }
     }
 
@@ -164,30 +185,50 @@ impl Vehicle {
         if !self.has_reached_turning_point() {
             match self.origin {
                 Direction::North => {
+                    self.width = VEHICLE_HEIGHT;
+                    self.height = VEHICLE_WIDTH;
                     self.position.y += self.velocity as i32;
                 }
                 Direction::South => {
+                    self.width = VEHICLE_HEIGHT;
+                    self.height = VEHICLE_WIDTH;
                     self.position.y -= self.velocity as i32;
                 }
                 Direction::East => {
+                    self.width = VEHICLE_WIDTH;
+                    self.height = VEHICLE_HEIGHT;
                     self.position.x -= self.velocity as i32;
                 }
                 Direction::West => {
+                    self.width = VEHICLE_WIDTH;
+                    self.height = VEHICLE_HEIGHT;
                     self.position.x += self.velocity as i32;
                 }
             }
         } else {
             match self.direction {
                 Direction::North => {
+                    self.facing = Direction::North;
+                    self.width = VEHICLE_HEIGHT;
+                    self.height = VEHICLE_WIDTH;
                     self.position.y -= self.velocity as i32;
                 }
                 Direction::South => {
+                    self.facing = Direction::South;
+                    self.width = VEHICLE_HEIGHT;
+                    self.height = VEHICLE_WIDTH;
                     self.position.y += self.velocity as i32;
                 }
                 Direction::East => {
+                    self.facing = Direction::East;
+                    self.width = VEHICLE_WIDTH;
+                    self.height = VEHICLE_HEIGHT;
                     self.position.x += self.velocity as i32;
                 }
                 Direction::West => {
+                    self.facing = Direction::West;
+                    self.width = VEHICLE_WIDTH;
+                    self.height = VEHICLE_HEIGHT;
                     self.position.x -= self.velocity as i32;
                 }
             }
@@ -196,7 +237,7 @@ impl Vehicle {
 
     pub fn get_future_position(&self, position: &Point) -> Point {
         let mut future_pos = Point::new(position.x, position.y);
-        if !self.has_reached_turning_point() {
+        if !self.has_reached_future_turning_point(&future_pos) {
             match self.origin {
                 Direction::North => {
                     future_pos.y = position.y + (self.velocity as i32);
@@ -249,6 +290,30 @@ impl Vehicle {
             (Direction::West, Direction::North) =>
                 self.position.x >= (((WINDOW_WIDTH * 2) / 3 - VERTICAL_LANE_WIDTH * 3) as i32),
             (Direction::West, Direction::South) => self.position.x >= ((WINDOW_WIDTH / 3) as i32),
+            (Direction::West, Direction::East) => true,
+            _ => true,
+        }
+    }
+
+    fn has_reached_future_turning_point(&self, position: &Point) -> bool {
+        match (self.origin, self.direction) {
+            (Direction::North, Direction::South) => true,
+            (Direction::North, Direction::East) =>
+                position.y >= (((WINDOW_HEIGHT * 2) / 3 - HORIZONTAL_LANE_HEIGHT * 3) as i32),
+            (Direction::North, Direction::West) => position.y >= ((WINDOW_HEIGHT / 3) as i32),
+            (Direction::South, Direction::North) => true,
+            (Direction::South, Direction::East) =>
+                position.y <= (((WINDOW_HEIGHT * 2) / 3 - HORIZONTAL_LANE_HEIGHT) as i32),
+            (Direction::South, Direction::West) =>
+                position.y <= ((WINDOW_HEIGHT / 3 + HORIZONTAL_LANE_HEIGHT * 2) as i32),
+            (Direction::East, Direction::North) =>
+                position.x <= (((WINDOW_WIDTH * 2) / 3 - VERTICAL_LANE_WIDTH) as i32),
+            (Direction::East, Direction::South) =>
+                position.x <= ((WINDOW_WIDTH / 3 + VERTICAL_LANE_WIDTH * 2) as i32),
+            (Direction::East, Direction::West) => true,
+            (Direction::West, Direction::North) =>
+                position.x >= (((WINDOW_WIDTH * 2) / 3 - VERTICAL_LANE_WIDTH * 3) as i32),
+            (Direction::West, Direction::South) => position.x >= ((WINDOW_WIDTH / 3) as i32),
             (Direction::West, Direction::East) => true,
             _ => true,
         }

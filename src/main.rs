@@ -2,17 +2,24 @@ mod render;
 mod intersection;
 mod vehicle;
 mod physics;
+mod algorithm;
 
 use crate::render::render;
 use std::time::{ Duration, Instant };
 
 use intersection::Intersection;
-use sdl2::{ event::Event, keyboard::Keycode };
+use sdl2::{
+    event::Event,
+    keyboard::Keycode,
+    render::{ TextureCreator, Texture },
+    video::WindowContext,
+    image::LoadTexture,
+};
 
 const WINDOW_WIDTH: u32 = 600;
 const WINDOW_HEIGHT: u32 = 600;
 const KEY_PRESS_INTERVAL: Duration = Duration::from_millis(200);
-const SPAWN_INTERVAL: Duration = Duration::from_millis(600);
+const SPAWN_INTERVAL: Duration = Duration::from_millis(800);
 
 fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
@@ -25,6 +32,9 @@ fn main() -> Result<(), String> {
         .expect("could not initialize video subsystem");
 
     let mut canvas = window.into_canvas().build().expect("could not make a canvas");
+    let texture_creator = canvas.texture_creator();
+    let car_texture = create_car_texture(&texture_creator);
+    let road_texture = create_road_texture(&texture_creator);
 
     let mut last_keypress_time = Instant::now();
     let mut last_spawn_time = Instant::now();
@@ -70,11 +80,21 @@ fn main() -> Result<(), String> {
         intersection.update();
 
         // Render
-        render(&mut canvas, &intersection)?;
+        render(&mut canvas, &intersection, &car_texture, &road_texture)?;
 
         // Time management!
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
 
     Ok(())
+}
+
+fn create_car_texture(texture_creator: &TextureCreator<WindowContext>) -> Texture {
+    let path = format!("src/assets/179664-OWO44A-16-removebg-preview.png");
+    texture_creator.load_texture(&path).expect(&format!("could not load texture: {}", path))
+}
+
+fn create_road_texture(texture_creator: &TextureCreator<WindowContext>) -> Texture {
+    let path = format!("src/assets/2112_w032_n003_284b_p1_284.jpg");
+    texture_creator.load_texture(&path).expect(&format!("could not load texture: {}", path))
 }

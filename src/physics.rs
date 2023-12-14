@@ -1,14 +1,14 @@
 use sdl2::rect::Point;
 
-use crate::{ vehicle::{ Vehicle, VEHICLE_HEIGHT }, WINDOW_WIDTH, WINDOW_HEIGHT };
+use crate::{ vehicle::{ Vehicle, VEHICLE_HEIGHT, VEHICLE_WIDTH }, WINDOW_WIDTH, WINDOW_HEIGHT };
 
 pub fn will_vehicles_collide(vehicle_a: &Vehicle, vehicle_b: &Vehicle) -> bool {
     // Define the number of time steps
     let num_time_steps = 500; // Replace with the desired number of time steps
 
     // Initial positions
-    let mut position_a = vehicle_a.get_future_position(&vehicle_a.position);
-    let mut position_b = vehicle_b.get_future_position(&vehicle_b.position);
+    let mut position_a = vehicle_a.position;
+    let mut position_b = vehicle_b.position;
 
     // Check for collisions at each time step
     for _ in 0..num_time_steps {
@@ -25,17 +25,17 @@ pub fn will_vehicles_collide(vehicle_a: &Vehicle, vehicle_b: &Vehicle) -> bool {
 
         if
             (future_position_a_x - future_position_b_x).abs() <=
-                (VEHICLE_HEIGHT as i32) * 2 + safety_gap &&
+                (VEHICLE_HEIGHT.max(VEHICLE_WIDTH) as i32) * 2 + safety_gap &&
             (future_position_a_y - future_position_b_y).abs() <=
-                (VEHICLE_HEIGHT as i32) * 2 + safety_gap
+                (VEHICLE_HEIGHT.max(VEHICLE_WIDTH) as i32) * 2 + safety_gap
         {
             // Future collision with safety gap
             return true;
         }
 
         // Update positions for the next time step
-        position_a = vehicle_a.get_future_position(&future_position_a);
-        position_b = vehicle_a.get_future_position(&future_position_b);
+        position_a = future_position_a;
+        position_b = future_position_b;
     }
     false
 }

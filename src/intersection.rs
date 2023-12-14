@@ -7,7 +7,7 @@ use crate::{
     vehicle::{ Vehicle, VEHICLE_WIDTH, VEHICLE_HEIGHT },
     WINDOW_WIDTH,
     WINDOW_HEIGHT,
-    physics::{ will_vehicles_collide },
+    algorithm::determine_velocity,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,37 +48,12 @@ impl Intersection {
     }
 
     pub fn update(&mut self) {
-        // Update the state of the intersection
-        // For example, check for collisions and update vehicle positions
-        // Implement the smart intersection strategy here
         let nc = self.vehicles.clone();
+
         for (_, car) in self.vehicles.iter_mut().enumerate() {
-            let mut new_velocity = 4.0;
-            let mut cars_after: Vec<Vehicle> = nc.clone();
+            let cars_after: Vec<Vehicle> = nc.clone();
 
-            //give priority to cars closer to finishing
-            cars_after.retain(
-                |&c|
-                    !c.is_in_end_lane() &&
-                    c.position != car.position &&
-                    c.get_distance_to_finish() < car.get_distance_to_finish()
-            );
-
-            if !car.is_in_end_lane() {
-                for other_car in &mut cars_after {
-                    while will_vehicles_collide(car, other_car) {
-                        // Reduce velocity by 0.5, with a minimum of 1.0
-                        new_velocity = (car.velocity - 1.0).max(1.0);
-
-                        car.set_velocity(new_velocity);
-
-                        // Check again for collision with the updated velocity
-                        if !will_vehicles_collide(car, other_car) || new_velocity == 1.0 {
-                            break;
-                        }
-                    }
-                }
-            }
+            let new_velocity = determine_velocity(car, cars_after);
 
             car.set_velocity(new_velocity);
             car.update(1.0 / 0.06);
