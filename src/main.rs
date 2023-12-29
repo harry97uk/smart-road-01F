@@ -3,6 +3,7 @@ mod intersection;
 mod vehicle;
 mod physics;
 mod algorithm;
+mod statistics;
 
 use crate::render::render;
 use std::time::{ Duration, Instant };
@@ -19,11 +20,12 @@ use sdl2::{
 const WINDOW_WIDTH: u32 = 600;
 const WINDOW_HEIGHT: u32 = 600;
 const KEY_PRESS_INTERVAL: Duration = Duration::from_millis(200);
-const SPAWN_INTERVAL: Duration = Duration::from_millis(800);
+const SPAWN_INTERVAL: Duration = Duration::from_millis(900);
 
 fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
+    let ttf_context = sdl2::ttf::init().unwrap();
 
     let window = video_subsystem
         .window("Smart Road", WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -32,6 +34,11 @@ fn main() -> Result<(), String> {
         .expect("could not initialize video subsystem");
 
     let mut canvas = window.into_canvas().build().expect("could not make a canvas");
+
+    let font_path = "src/assets/josefin-sans/JosefinSans-Regular.ttf"; // Replace with the path to your TrueType font file
+    let font_size = 12;
+    let font = ttf_context.load_font(font_path, font_size).unwrap();
+
     let texture_creator = canvas.texture_creator();
     let car_texture = create_car_texture(&texture_creator);
     let road_texture = create_road_texture(&texture_creator);
@@ -41,15 +48,26 @@ fn main() -> Result<(), String> {
 
     let mut intersection = Intersection::new();
 
-    let mut continuous_spawning = false;
+    let mut continuous_spawning: bool = false;
+    let mut show_statistics: bool = false;
 
     let mut event_pump = sdl_context.event_pump()?;
     'running: loop {
         // Handle events
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. } | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                Event::Quit { .. } => {
                     break 'running;
+                }
+                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                    if show_statistics {
+                        // Handle the event when Escape is pressed and show_statistics is true
+                        break 'running;
+                    } else {
+                        show_statistics = true;
+                        //intersection.add_remaining_finished_vehicles();
+                        //intersection.find_min_max_times();
+                    }
                 }
                 Event::KeyDown { keycode: Some(keycode), .. } => {
                     let elapsed_time = Instant::now().duration_since(last_keypress_time);
@@ -72,15 +90,17 @@ fn main() -> Result<(), String> {
         }
 
         // Update
-        let elapsed_spawn_time = Instant::now().duration_since(last_spawn_time);
-        if continuous_spawning && elapsed_spawn_time >= SPAWN_INTERVAL {
-            intersection.add_random_vehicle();
-            last_spawn_time = Instant::now();
+        if !show_statistics {
+            let elapsed_spawn_time = Instant::now().duration_since(last_spawn_time);
+            if continuous_spawning && elapsed_spawn_time >= SPAWN_INTERVAL {
+                intersection.add_random_vehicle();
+                last_spawn_time = Instant::now();
+            }
+            intersection.update();
         }
-        intersection.update();
 
         // Render
-        render(&mut canvas, &intersection, &car_texture, &road_texture)?;
+        render(&mut canvas, &intersection, &car_texture, &road_texture, &font, show_statistics)?;
 
         // Time management!
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));

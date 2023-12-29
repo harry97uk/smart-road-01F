@@ -8,6 +8,7 @@ use crate::{
     WINDOW_WIDTH,
     WINDOW_HEIGHT,
     algorithm::determine_velocity,
+    statistics::Statistics,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -23,6 +24,7 @@ pub struct Intersection {
     // For example, a collection of vehicles currently in the intersection
     pub lanes: [Lane; 12],
     pub vehicles: Vec<Vehicle>,
+    pub stats: Statistics,
 }
 
 impl Intersection {
@@ -41,9 +43,11 @@ impl Intersection {
             Lane::new(Direction::West, Direction::South),
             Lane::new(Direction::West, Direction::East),
         ];
+        let stats = Statistics::new();
         Self {
             lanes,
             vehicles: vec![],
+            stats,
         }
     }
 
@@ -55,18 +59,34 @@ impl Intersection {
 
             let new_velocity = determine_velocity(car, cars_after);
 
+            if new_velocity > self.stats.max_velocity {
+                self.stats.set_max_velocity(new_velocity);
+            }
+            if new_velocity < self.stats.min_velocity {
+                self.stats.set_min_velocity(new_velocity);
+            }
+
             car.set_velocity(new_velocity);
             car.update(1.0 / 0.06);
+
+            if !car.is_in_entire_intersection() {
+                if car.time > self.stats.max_time {
+                    self.stats.set_max_time(car.time);
+                }
+                if car.time < self.stats.min_time || self.stats.min_time < 0.0 {
+                    self.stats.set_min_time(car.time);
+                }
+            }
         }
 
+        let cars_before = self.vehicles.len().clone();
+
         //remove vehicles from intersection if out of bounds
-        self.vehicles.retain(
-            |v|
-                v.position.x <= (WINDOW_WIDTH as i32) &&
-                v.position.x >= 0 - (VEHICLE_WIDTH as i32) &&
-                v.position.y <= (WINDOW_HEIGHT as i32) &&
-                v.position.y >= 0 - (VEHICLE_HEIGHT as i32)
-        );
+        self.vehicles.retain(|v| v.is_in_entire_intersection());
+
+        let cars_after = self.vehicles.len().clone();
+
+        self.stats.add_to_total_vehicles((cars_before as u32) - (cars_after as u32));
     }
 
     pub fn add_directed_vehicle(&mut self, keycode: Keycode) {
@@ -128,6 +148,30 @@ impl Intersection {
             .expect("could not find correct lane");
         lane.add_vehicle(vehicle);
         self.vehicles.push(vehicle);
+    }
+
+    pub fn add_remaining_finished_vehicles(&mut self) {
+        self.stats.add_to_total_vehicles(
+            self.vehicles
+                .iter()
+                .filter(|v| v.is_in_end_lane())
+                .count() as u32
+        );
+    }
+
+    pub fn find_min_max_times(&mut self) {
+        self.stats.set_max_time(
+            self.vehicles
+                .iter()
+                .max_by(|x, y| x.time.partial_cmp(&y.time).unwrap())
+                .unwrap().time
+        );
+        self.stats.set_min_time(
+            self.vehicles
+                .iter()
+                .min_by(|x, y| x.time.partial_cmp(&y.time).unwrap())
+                .unwrap().time
+        )
     }
 
     // Add more methods as needed for intersection behavior

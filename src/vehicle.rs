@@ -139,46 +139,11 @@ impl Vehicle {
             self.position.y <= ((WINDOW_HEIGHT as i32) * 2) / 3
     }
 
-    pub fn is_car_in_front(&self, vehicles: Vec<Vehicle>) -> bool {
-        match self.origin {
-            Direction::North => {
-                if
-                    let None = vehicles
-                        .iter()
-                        .find(|c| c.position.x == self.position.x && c.position.y > self.position.y)
-                {
-                    return false;
-                }
-            }
-            Direction::South => {
-                if
-                    let None = vehicles
-                        .iter()
-                        .find(|c| c.position.x == self.position.x && c.position.y < self.position.y)
-                {
-                    return false;
-                }
-            }
-            Direction::East => {
-                if
-                    let None = vehicles
-                        .iter()
-                        .find(|c| c.position.y == self.position.y && c.position.x < self.position.x)
-                {
-                    return false;
-                }
-            }
-            Direction::West => {
-                if
-                    let None = vehicles
-                        .iter()
-                        .find(|c| c.position.y == self.position.y && c.position.x > self.position.x)
-                {
-                    return false;
-                }
-            }
-        }
-        true
+    pub fn is_in_entire_intersection(&self) -> bool {
+        self.position.x <= (WINDOW_WIDTH as i32) &&
+            self.position.x >= 0 - (VEHICLE_WIDTH as i32) &&
+            self.position.y <= (WINDOW_HEIGHT as i32) &&
+            self.position.y >= 0 - (VEHICLE_HEIGHT as i32)
     }
 
     fn update_position(&mut self) {

@@ -1,10 +1,11 @@
-use sdl2::{ render::{ WindowCanvas, Texture }, pixels::Color, rect::{ Rect, Point } };
+use sdl2::{ render::{ WindowCanvas, Texture }, pixels::Color, rect::{ Rect }, ttf::Font };
 
 use crate::{
     intersection::{ Intersection, Direction },
     WINDOW_HEIGHT,
     WINDOW_WIDTH,
     vehicle::{ VEHICLE_WIDTH, VEHICLE_HEIGHT },
+    statistics::Statistics,
 };
 
 pub const VERTICAL_LANE_WIDTH: u32 = WINDOW_WIDTH / 18;
@@ -177,16 +178,71 @@ fn render_cars(
     Ok(())
 }
 
+fn render_statistics(
+    canvas: &mut WindowCanvas,
+    font: &Font,
+    stats: &Statistics
+) -> Result<(), String> {
+    // Create a smaller window (viewport) within the main window
+    let viewport_width = 200;
+    let viewport_height = 300;
+    let viewport_rect = Rect::new(200, 150, viewport_width, viewport_height);
+
+    // Set the viewport for the smaller window
+    canvas.set_viewport(viewport_rect);
+
+    // Draw something to the smaller window
+    canvas.set_draw_color(Color::GRAY);
+    canvas.fill_rect(Rect::new(0, 0, viewport_width, viewport_height)).unwrap();
+
+    let surface = font
+        .render(
+            format!(
+                "Statistics\nNumber of vehicles: {}\nMax Velocity: {}\nMin Velocity: {}\nMax Time: {:.2} seconds\nMin Time: {:.2} seconds\nClose Calls: ?",
+                stats.num_vehicles,
+                stats.max_velocity,
+                stats.min_velocity,
+                stats.max_time / 1000.0,
+                stats.min_time / 1000.0
+            ).as_str()
+        )
+        .blended_wrapped(Color::RGB(0, 0, 0), viewport_width)
+        .map_err(|e| e.to_string())
+        .unwrap();
+
+    let texture_creator = canvas.texture_creator();
+    let texture = texture_creator
+        .create_texture_from_surface(&surface)
+        .map_err(|e| e.to_string())
+        .unwrap();
+
+    let texture_query = texture.query();
+    let dest_rect = Rect::new(0, 0, texture_query.width, texture_query.height);
+
+    canvas.copy(&texture, None, dest_rect).unwrap();
+
+    canvas.set_viewport(Rect::new(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT));
+    Ok(())
+}
+
 pub fn render(
     canvas: &mut WindowCanvas,
     intersection: &Intersection,
     car_texture: &Texture,
-    road_texture: &Texture
+    road_texture: &Texture,
+    font: &Font,
+    show_statistics: bool
 ) -> Result<(), String> {
     canvas.set_draw_color(Color { r: 0, g: 100, b: 0, a: 1 });
     canvas.clear();
+
     render_intersection(canvas, intersection, road_texture)?;
     render_cars(canvas, intersection, car_texture)?;
+
+    if show_statistics {
+        render_statistics(canvas, font, &intersection.stats)?;
+    }
+
     canvas.present();
     Ok(())
 }
