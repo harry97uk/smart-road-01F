@@ -137,8 +137,8 @@ fn render_cars(
         let mut screen_rect = Rect::new(
             car.position.x,
             car.position.y,
-            VEHICLE_WIDTH,
-            VEHICLE_HEIGHT
+            VEHICLE_WIDTH - 10,
+            VEHICLE_HEIGHT - 10
         );
         let src = Rect::new(
             0,
@@ -149,14 +149,14 @@ fn render_cars(
         match car.facing {
             Direction::North => {
                 screen_rect.set_x(
-                    car.position.x - (VEHICLE_WIDTH.abs_diff(VEHICLE_HEIGHT) as i32) / 2
+                    car.position.x - ((VEHICLE_WIDTH - 10).abs_diff(VEHICLE_HEIGHT - 10) as i32) / 2
                 );
                 screen_rect.set_y(car.position.y + 5);
                 angle = 90.0;
             }
             Direction::South => {
                 screen_rect.set_x(
-                    car.position.x - (VEHICLE_WIDTH.abs_diff(VEHICLE_HEIGHT) as i32) / 2
+                    car.position.x - ((VEHICLE_WIDTH - 10).abs_diff(VEHICLE_HEIGHT - 10) as i32) / 2
                 );
                 screen_rect.set_y(car.position.y + 5);
                 angle = 270.0;
@@ -168,8 +168,16 @@ fn render_cars(
         }
         let perim = Rect::from_center(
             screen_rect.center(),
-            VEHICLE_HEIGHT.max(VEHICLE_WIDTH) + 5,
-            VEHICLE_HEIGHT.max(VEHICLE_WIDTH) + 5
+            if car.facing == Direction::North || car.facing == Direction::South {
+                VEHICLE_HEIGHT - 10
+            } else {
+                VEHICLE_WIDTH - 10
+            },
+            if car.facing == Direction::North || car.facing == Direction::South {
+                VEHICLE_WIDTH - 10
+            } else {
+                VEHICLE_HEIGHT - 10
+            }
         );
         canvas.copy_ex(car_texture, src, screen_rect, angle, None, false, false)?;
         canvas.draw_rect(actual_rect).unwrap();
@@ -195,15 +203,17 @@ fn render_statistics(
     canvas.set_draw_color(Color::GRAY);
     canvas.fill_rect(Rect::new(0, 0, viewport_width, viewport_height)).unwrap();
 
+    //divide close calls by two because both cars are counted
     let surface = font
         .render(
             format!(
-                "Statistics\nNumber of vehicles: {}\nMax Velocity: {}\nMin Velocity: {}\nMax Time: {:.2} seconds\nMin Time: {:.2} seconds\nClose Calls: ?",
+                "Statistics\nNumber of vehicles: {}\nMax Velocity: {}\nMin Velocity: {}\nMax Time: {:.2} seconds\nMin Time: {:.2} seconds\nClose Calls: {}",
                 stats.num_vehicles,
                 stats.max_velocity,
                 stats.min_velocity,
                 stats.max_time / 1000.0,
-                stats.min_time / 1000.0
+                stats.min_time / 1000.0,
+                stats.close_calls / 2
             ).as_str()
         )
         .blended_wrapped(Color::RGB(0, 0, 0), viewport_width)

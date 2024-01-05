@@ -2,6 +2,8 @@ use sdl2::rect::Point;
 
 use crate::{ vehicle::{ Vehicle, VEHICLE_HEIGHT, VEHICLE_WIDTH }, WINDOW_WIDTH, WINDOW_HEIGHT };
 
+const SAFETY_GAP: i32 = 2;
+
 pub fn will_vehicles_collide(vehicle_a: &Vehicle, vehicle_b: &Vehicle) -> bool {
     // Define the number of time steps
     let num_time_steps = 500; // Replace with the desired number of time steps
@@ -20,14 +22,11 @@ pub fn will_vehicles_collide(vehicle_a: &Vehicle, vehicle_b: &Vehicle) -> bool {
         let future_position_b_x = future_position_b.x;
         let future_position_b_y = future_position_b.y;
 
-        // Check for collision with safety gap at the future positions
-        let safety_gap = 10; // Adjust this value as needed
-
         if
             (future_position_a_x - future_position_b_x).abs() <=
-                (VEHICLE_HEIGHT.max(VEHICLE_WIDTH) as i32) * 2 + safety_gap &&
+                (vehicle_a.width.max(vehicle_a.width) as i32) + SAFETY_GAP &&
             (future_position_a_y - future_position_b_y).abs() <=
-                (VEHICLE_HEIGHT.max(VEHICLE_WIDTH) as i32) * 2 + safety_gap
+                (vehicle_a.height.max(vehicle_a.width) as i32) + SAFETY_GAP
         {
             // Future collision with safety gap
             return true;
@@ -51,4 +50,22 @@ pub fn is_closer_to_center(point_a: Point, point_b: Point) -> bool {
         .into();
 
     dist_a <= dist_b
+}
+
+pub fn get_close_calls_for_vehicle(car: &mut Vehicle, other_cars: &Vec<Vehicle>) {
+    for other_car in other_cars {
+        if
+            car.id != other_car.id &&
+            car.close_calls
+                .iter()
+                .filter(|cc| cc.id == other_car.id)
+                .count() < 1 &&
+            (car.position.x - other_car.position.x).abs() <=
+                (car.width.max(car.width) as i32) + SAFETY_GAP &&
+            (car.position.y - other_car.position.y).abs() <=
+                (car.height.max(car.width) as i32) + SAFETY_GAP
+        {
+            car.close_calls.push(other_car.clone());
+        }
+    }
 }

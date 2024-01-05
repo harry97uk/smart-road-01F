@@ -1,26 +1,18 @@
 use crate::{ vehicle::Vehicle, physics::will_vehicles_collide };
 
-pub fn determine_velocity(car: &mut Vehicle, mut cars_after: Vec<Vehicle>) -> f32 {
+pub fn determine_velocity(car: &mut Vehicle, mut all_cars: Vec<Vehicle>) -> f32 {
     let mut new_velocity: f32 = 3.0;
     car.colliding = false;
+
     //give priority to cars closer to finishing
-    cars_after.retain(
-        |&c|
+    all_cars.retain(
+        |c|
             !c.is_in_end_lane() &&
             c.position != car.position &&
             c.get_distance_to_finish() <= car.get_distance_to_finish()
     );
 
-    let num_cars_in_intersection = cars_after
-        .iter()
-        .filter(|c| c.is_in_intersection())
-        .count();
-
-    if num_cars_in_intersection > 4 {
-        println!("Intersection limit maxed");
-        new_velocity = 1.0;
-        return new_velocity;
-    }
+    let mut cars_after = all_cars;
 
     if !car.is_in_end_lane() {
         for other_car in &mut cars_after {
@@ -33,6 +25,11 @@ pub fn determine_velocity(car: &mut Vehicle, mut cars_after: Vec<Vehicle>) -> f3
                 // Check again for collision with the updated velocity
                 if new_velocity == 1.0 {
                     if will_vehicles_collide(car, other_car) {
+                        new_velocity = 4.0;
+                        car.set_velocity(new_velocity);
+                        if will_vehicles_collide(car, other_car) {
+                            new_velocity = 1.0;
+                        }
                         car.colliding = true;
                         other_car.colliding = true;
                     }

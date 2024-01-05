@@ -39,7 +39,7 @@ impl Statistics {
         self.min_time = new_time;
     }
 
-    pub fn add_close_call(&mut self) {
-        self.close_calls += 1;
+    pub fn add_close_call(&mut self, amount_to_add: u32) {
+        self.close_calls += amount_to_add;
     }
 }

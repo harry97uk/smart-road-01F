@@ -10,8 +10,9 @@ use crate::{
 pub const VEHICLE_WIDTH: u32 = (VERTICAL_LANE_WIDTH * 3) / 2;
 pub const VEHICLE_HEIGHT: u32 = VERTICAL_LANE_WIDTH;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Vehicle {
+    pub id: u32,
     pub position: Point,
     pub width: u32,
     pub height: u32,
@@ -22,10 +23,11 @@ pub struct Vehicle {
     pub direction: Direction,
     pub facing: Direction,
     pub colliding: bool,
+    pub close_calls: Vec<Vehicle>,
 }
 
 impl Vehicle {
-    pub fn new(origin: Direction, direction: Direction) -> Self {
+    pub fn new(origin: Direction, direction: Direction, id: u32) -> Self {
         let (mut x, mut y) = (0, 0);
         let mut facing = Direction::North;
 
@@ -88,9 +90,10 @@ impl Vehicle {
         }
 
         Self {
+            id,
             position: Point::new(x as i32, y as i32),
-            width: VEHICLE_WIDTH,
-            height: VEHICLE_HEIGHT,
+            width: VEHICLE_WIDTH - 10,
+            height: VEHICLE_HEIGHT - 10,
             time: 0.0,
             distance: 0.0,
             velocity: 1.0,
@@ -98,6 +101,7 @@ impl Vehicle {
             direction,
             facing,
             colliding: false,
+            close_calls: vec![],
         }
     }
 
@@ -150,23 +154,23 @@ impl Vehicle {
         if !self.has_reached_turning_point() {
             match self.origin {
                 Direction::North => {
-                    self.width = VEHICLE_HEIGHT;
-                    self.height = VEHICLE_WIDTH;
+                    self.width = VEHICLE_HEIGHT - 10;
+                    self.height = VEHICLE_WIDTH - 10;
                     self.position.y += self.velocity as i32;
                 }
                 Direction::South => {
-                    self.width = VEHICLE_HEIGHT;
-                    self.height = VEHICLE_WIDTH;
+                    self.width = VEHICLE_HEIGHT - 10;
+                    self.height = VEHICLE_WIDTH - 10;
                     self.position.y -= self.velocity as i32;
                 }
                 Direction::East => {
-                    self.width = VEHICLE_WIDTH;
-                    self.height = VEHICLE_HEIGHT;
+                    self.width = VEHICLE_WIDTH - 10;
+                    self.height = VEHICLE_HEIGHT - 10;
                     self.position.x -= self.velocity as i32;
                 }
                 Direction::West => {
-                    self.width = VEHICLE_WIDTH;
-                    self.height = VEHICLE_HEIGHT;
+                    self.width = VEHICLE_WIDTH - 10;
+                    self.height = VEHICLE_HEIGHT - 10;
                     self.position.x += self.velocity as i32;
                 }
             }
@@ -174,26 +178,26 @@ impl Vehicle {
             match self.direction {
                 Direction::North => {
                     self.facing = Direction::North;
-                    self.width = VEHICLE_HEIGHT;
-                    self.height = VEHICLE_WIDTH;
+                    self.width = VEHICLE_HEIGHT - 10;
+                    self.height = VEHICLE_WIDTH - 10;
                     self.position.y -= self.velocity as i32;
                 }
                 Direction::South => {
                     self.facing = Direction::South;
-                    self.width = VEHICLE_HEIGHT;
-                    self.height = VEHICLE_WIDTH;
+                    self.width = VEHICLE_HEIGHT - 10;
+                    self.height = VEHICLE_WIDTH - 10;
                     self.position.y += self.velocity as i32;
                 }
                 Direction::East => {
                     self.facing = Direction::East;
-                    self.width = VEHICLE_WIDTH;
-                    self.height = VEHICLE_HEIGHT;
+                    self.width = VEHICLE_WIDTH - 10;
+                    self.height = VEHICLE_HEIGHT - 10;
                     self.position.x += self.velocity as i32;
                 }
                 Direction::West => {
                     self.facing = Direction::West;
-                    self.width = VEHICLE_WIDTH;
-                    self.height = VEHICLE_HEIGHT;
+                    self.width = VEHICLE_WIDTH - 10;
+                    self.height = VEHICLE_HEIGHT - 10;
                     self.position.x -= self.velocity as i32;
                 }
             }

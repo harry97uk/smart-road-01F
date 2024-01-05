@@ -19,8 +19,8 @@ use sdl2::{
 
 const WINDOW_WIDTH: u32 = 600;
 const WINDOW_HEIGHT: u32 = 600;
-const KEY_PRESS_INTERVAL: Duration = Duration::from_millis(200);
-const SPAWN_INTERVAL: Duration = Duration::from_millis(900);
+const KEY_PRESS_INTERVAL: Duration = Duration::from_millis(300);
+const SPAWN_INTERVAL: Duration = Duration::from_millis(800);
 
 fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
@@ -47,6 +47,7 @@ fn main() -> Result<(), String> {
     let mut last_spawn_time = Instant::now();
 
     let mut intersection = Intersection::new();
+    let mut vehicle_id = 0;
 
     let mut continuous_spawning: bool = false;
     let mut show_statistics: bool = false;
@@ -74,7 +75,8 @@ fn main() -> Result<(), String> {
                     if elapsed_time >= KEY_PRESS_INTERVAL {
                         match keycode {
                             Keycode::Left | Keycode::Right | Keycode::Up | Keycode::Down => {
-                                intersection.add_directed_vehicle(keycode);
+                                intersection.add_directed_vehicle(keycode, vehicle_id);
+                                vehicle_id += 1;
                             }
                             Keycode::R => {
                                 continuous_spawning = !continuous_spawning;
@@ -93,7 +95,8 @@ fn main() -> Result<(), String> {
         if !show_statistics {
             let elapsed_spawn_time = Instant::now().duration_since(last_spawn_time);
             if continuous_spawning && elapsed_spawn_time >= SPAWN_INTERVAL {
-                intersection.add_random_vehicle();
+                intersection.add_random_vehicle(vehicle_id);
+                vehicle_id += 1;
                 last_spawn_time = Instant::now();
             }
             intersection.update();

@@ -4,11 +4,10 @@ use rand::Rng;
 use sdl2::keyboard::Keycode;
 
 use crate::{
-    vehicle::{ Vehicle, VEHICLE_WIDTH, VEHICLE_HEIGHT },
-    WINDOW_WIDTH,
-    WINDOW_HEIGHT,
+    vehicle::{ Vehicle },
     algorithm::determine_velocity,
     statistics::Statistics,
+    physics::{ get_close_calls_for_vehicle },
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,11 +52,14 @@ impl Intersection {
 
     pub fn update(&mut self) {
         let nc = self.vehicles.clone();
+        let mut close_call_count = 0;
 
         for (_, car) in self.vehicles.iter_mut().enumerate() {
-            let cars_after: Vec<Vehicle> = nc.clone();
+            let all_cars: Vec<Vehicle> = nc.clone();
 
-            let new_velocity = determine_velocity(car, cars_after);
+            get_close_calls_for_vehicle(car, &all_cars);
+
+            let new_velocity = determine_velocity(car, all_cars);
 
             if new_velocity > self.stats.max_velocity {
                 self.stats.set_max_velocity(new_velocity);
@@ -79,7 +81,17 @@ impl Intersection {
             }
         }
 
+        //divide close call count by two because count happens for both vehicles
+        close_call_count = close_call_count / 2;
+        self.stats.add_close_call(close_call_count);
+
         let cars_before = self.vehicles.len().clone();
+
+        for veh in &self.vehicles {
+            if !veh.is_in_entire_intersection() {
+                self.stats.add_close_call(veh.close_calls.len() as u32);
+            }
+        }
 
         //remove vehicles from intersection if out of bounds
         self.vehicles.retain(|v| v.is_in_entire_intersection());
@@ -89,7 +101,7 @@ impl Intersection {
         self.stats.add_to_total_vehicles((cars_before as u32) - (cars_after as u32));
     }
 
-    pub fn add_directed_vehicle(&mut self, keycode: Keycode) {
+    pub fn add_directed_vehicle(&mut self, keycode: Keycode, id: u32) {
         let mut origin = Direction::South;
         let mut directions = vec![
             Direction::North,
@@ -118,10 +130,10 @@ impl Intersection {
         let random_index = rand::thread_rng().gen_range(0..directions.len());
         let direction = directions[random_index];
 
-        self.add_vehicle(origin, direction);
+        self.add_vehicle(origin, direction, id);
     }
 
-    pub fn add_random_vehicle(&mut self) {
+    pub fn add_random_vehicle(&mut self, id: u32) {
         //get random direction and set origin
         let mut directions = vec![
             Direction::North,
@@ -137,16 +149,11 @@ impl Intersection {
         random_index = rand::thread_rng().gen_range(0..directions.len());
         let direction = directions[random_index];
 
-        self.add_vehicle(direction, origin)
+        self.add_vehicle(direction, origin, id)
     }
 
-    fn add_vehicle(&mut self, origin: Direction, direction: Direction) {
-        let vehicle = Vehicle::new(origin, direction);
-        let lane: &mut Lane = self.lanes
-            .iter_mut()
-            .find(|l| l.direction == direction && l.origin == origin)
-            .expect("could not find correct lane");
-        lane.add_vehicle(vehicle);
+    fn add_vehicle(&mut self, origin: Direction, direction: Direction, id: u32) {
+        let vehicle = Vehicle::new(origin, direction, id);
         self.vehicles.push(vehicle);
     }
 
