@@ -1,5 +1,7 @@
 // intersection/lane.rs
 
+use std::collections::VecDeque;
+
 use rand::Rng;
 use sdl2::keyboard::Keycode;
 
@@ -7,7 +9,7 @@ use crate::{
     vehicle::{ Vehicle },
     algorithm::determine_velocity,
     statistics::Statistics,
-    physics::{ get_close_calls_for_vehicle },
+    physics::{ get_close_calls_for_vehicle, will_vehicles_collide },
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -22,6 +24,7 @@ pub struct Intersection {
     // Define any necessary fields for the intersection
     // For example, a collection of vehicles currently in the intersection
     pub lanes: [Lane; 12],
+    pub queued_vehicles: VecDeque<Vehicle>,
     pub vehicles: Vec<Vehicle>,
     pub stats: Statistics,
 }
@@ -45,6 +48,7 @@ impl Intersection {
         let stats = Statistics::new();
         Self {
             lanes,
+            queued_vehicles: VecDeque::new(),
             vehicles: vec![],
             stats,
         }
@@ -130,7 +134,7 @@ impl Intersection {
         let random_index = rand::thread_rng().gen_range(0..directions.len());
         let direction = directions[random_index];
 
-        self.add_vehicle(origin, direction, id);
+        self.add_vehicle_to_queue(origin, direction, id);
     }
 
     pub fn add_random_vehicle(&mut self, id: u32) {
@@ -149,12 +153,30 @@ impl Intersection {
         random_index = rand::thread_rng().gen_range(0..directions.len());
         let direction = directions[random_index];
 
-        self.add_vehicle(direction, origin, id)
+        self.add_vehicle_to_queue(direction, origin, id)
     }
 
-    fn add_vehicle(&mut self, origin: Direction, direction: Direction, id: u32) {
+    fn add_vehicle_to_queue(&mut self, origin: Direction, direction: Direction, id: u32) {
         let vehicle = Vehicle::new(origin, direction, id);
-        self.vehicles.push(vehicle);
+        self.queued_vehicles.push_back(vehicle);
+    }
+
+    pub fn add_vehicle(&mut self) {
+        'queue: while self.queued_vehicles.len() > 0 {
+            let same_origin_vehicles = self.vehicles
+                .iter()
+                .filter(|v| v.origin == self.queued_vehicles[0].origin);
+
+            for v in same_origin_vehicles {
+                if will_vehicles_collide(&self.queued_vehicles[0], v) {
+                    break 'queue;
+                }
+            }
+
+            self.vehicles.push(
+                self.queued_vehicles.pop_front().expect("no vehicle found in queue")
+            );
+        }
     }
 
     pub fn add_remaining_finished_vehicles(&mut self) {

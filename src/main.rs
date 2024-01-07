@@ -19,7 +19,7 @@ use sdl2::{
 
 const WINDOW_WIDTH: u32 = 600;
 const WINDOW_HEIGHT: u32 = 600;
-const KEY_PRESS_INTERVAL: Duration = Duration::from_millis(300);
+const KEY_PRESS_INTERVAL: Duration = Duration::from_millis(0);
 const SPAWN_INTERVAL: Duration = Duration::from_millis(800);
 
 fn main() -> Result<(), String> {
@@ -99,6 +99,7 @@ fn main() -> Result<(), String> {
                 vehicle_id += 1;
                 last_spawn_time = Instant::now();
             }
+            intersection.add_vehicle();
             intersection.update();
         }
 

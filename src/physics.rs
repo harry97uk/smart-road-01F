@@ -2,11 +2,11 @@ use sdl2::rect::Point;
 
 use crate::{ vehicle::{ Vehicle, VEHICLE_HEIGHT, VEHICLE_WIDTH }, WINDOW_WIDTH, WINDOW_HEIGHT };
 
-const SAFETY_GAP: i32 = 2;
+const SAFETY_GAP: i32 = 4;
 
 pub fn will_vehicles_collide(vehicle_a: &Vehicle, vehicle_b: &Vehicle) -> bool {
     // Define the number of time steps
-    let num_time_steps = 500; // Replace with the desired number of time steps
+    let num_time_steps = 1000; // Replace with the desired number of time steps
 
     // Initial positions
     let mut position_a = vehicle_a.position;
